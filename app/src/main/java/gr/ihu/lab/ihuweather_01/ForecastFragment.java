@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -37,7 +38,7 @@ public class ForecastFragment extends Fragment {
             "Fri 6/27 - Foggy - 21/10",
             "Sat 6/28 - Error! - 23/18",
             "Sun 6/29 - Sunny - 20/7"         };
-
+    private ArrayAdapter<String> adapter;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -66,7 +67,7 @@ public class ForecastFragment extends Fragment {
 
     public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
 
-
+//asychronously fetching data to not freeze users interface
         @Override
         protected String[] doInBackground(String... voids) {
 
@@ -74,9 +75,16 @@ public class ForecastFragment extends Fragment {
             BufferedReader reader = null;
             String forecastString = null;
 
+            int numDays = 7;
+
             try{
                 URL url
-                        = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?q=thessaloniki,gr&APPID=8cbf55d68127d9483386b81e1ab1cd8d&cnt=7");
+                        = new URL("http://api.openweathermap.org/data/2.5/" +
+                        "forecast/daily?" +
+                        "q=thessaloniki,gr" +
+                        "&units=metric" +
+                        "&APPID=8cbf55d68127d9483386b81e1ab1cd8d" +
+                        "&cnt=" +numDays);
 
                 urlConnection = (HttpURLConnection)url.openConnection();
                 urlConnection.setRequestMethod("GET");
@@ -104,7 +112,7 @@ public class ForecastFragment extends Fragment {
 
                 Log.i("ForecastFragment", forecastString);
 
-                return new String[1];
+                return WeatherParser.parseWeatherFromJSON(numDays,forecastString);
 
             }catch (Exception e){
                 Log.e("ForecastFragment", "Error", e);
@@ -120,8 +128,26 @@ public class ForecastFragment extends Fragment {
 
            return null;
         }
+
+        @Override
+        protected void onPostExecute(String[] weatherResults){
+            if(weatherResults!=null){
+                adapter.clear();
+                //no access to index in that way if we want access we do it the old way with i<2;i++
+                for (String s: weatherResults){
+                    adapter.add(s);
+                }
+
+            }
+
+
     }
 
+
+
+
+
+    }
 
     @Nullable
     @Override
@@ -131,10 +157,9 @@ public class ForecastFragment extends Fragment {
 
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
-        List<String> dummyData = Arrays.asList(data);
+        ArrayList<String> dummyData = new ArrayList<>(Arrays.asList(data));
 
-        ArrayAdapter<String> adapter
-                = new ArrayAdapter<String>(
+       adapter = new ArrayAdapter<String>(
                 getActivity(),
                 R.layout.list_item_forecast,
                 R.id.list_item_forecast_textview,
